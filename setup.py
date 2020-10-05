@@ -20,7 +20,7 @@ with open(os.path.join(HERE, "README.md")) as fid:
 # This call to setup() does all the work
 setup(
     name="textslack",
-    version="0.0.1",
+    version="1.0.0",
     description="Play with text data",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -40,6 +40,6 @@ setup(
     packages=["textslack"],
     include_package_data=True,
     install_requires=[
-        "nltk", "textblob", "sklearn", "collections", "normalize"
+        "nltk", "textblob", "sklearn", "normalise"
     ]
 )
