@@ -1,2 +1,2 @@
-# simpletext
-A text cleaning pipeline to perform basic text cleaning, along with additional functionalities for sentiment, pos extraction, etc.
+# textslack
+A text cleaning pipeline to perform text cleaning, along with additional functionalities for sentiment, pos extraction, and word count.
