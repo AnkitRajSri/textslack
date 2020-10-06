@@ -1,1 +1,1 @@
-from textslack import TextSlack
+from textslack import *
