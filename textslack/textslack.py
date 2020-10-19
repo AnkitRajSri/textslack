@@ -5,17 +5,25 @@ Created on Tue Sep 22 23:53:32 2020
 @author: Ankit Raj
 """
 import re
-from nltk.tokenize import regexp_tokenize
+import pandas as pd
+import nltk
+nltk.download('brown')
+nltk.download('name')
+nltk.download('universal_tagset')
+from nltk.tokenize import word_tokenize, regexp_tokenize
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
 from textblob import TextBlob
 import string
 from collections import Counter
-from sklearn.base import TransformerMixin, BaseEstimator
 from normalise import normalise
 
+from sklearn.base import TransformerMixin, BaseEstimator
+
 class TextSlack(BaseEstimator, TransformerMixin):
-    def __init__(self, stop_words=stopwords.words('english'), lemmatizer=WordNetLemmatizer()):
+    def __init__(self, variety='BrE', user_abbrevs={}, stop_words=stopwords.words('english'), lemmatizer=WordNetLemmatizer()):
+        self.variety = variety
+        self.user_abbrevs = user_abbrevs
         self.stop_words = stop_words
         self.lemmatizer = lemmatizer
 
@@ -23,21 +31,23 @@ class TextSlack(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X, *_):
-        processed_data = self._preprocess_text(X)
-        
-        return processed_data
+        if isinstance(X, pd.Series):
+            X_copy = X.copy()
+        else:
+            return self._preprocess_text(X)
+        return X_copy.apply(self._preprocess_text)
 
     def _preprocess_text(self, text):
-        normalized_text = self._normalize(text.lower())
-        normalized_text = re.sub(' +', ' ', normalized_text)
-        words = regexp_tokenize(text.lower(), r'[A-Za-z]+')
+        normalised_text = self._normalise(text)
+        normalised_text = re.sub(' +', ' ', normalised_text)
+        words = regexp_tokenize(normalised_text.lower(), r'[A-Za-z]+')
         removed_punct = self._remove_punct(words)
         removed_stopwords = self._remove_stopwords(removed_punct)
         return self._lemmatize(removed_stopwords)
 
-    def _normalize(self, text):
+    def _normalise(self, text):
         try:
-            return ' '.join(normalise(text, verbose=False))
+            return ' '.join(normalise(word_tokenize(text), variety=self.variety, user_abbrevs=self.user_abbrevs, verbose=False))
         except:
             return text
 
@@ -45,7 +55,7 @@ class TextSlack(BaseEstimator, TransformerMixin):
         return [w for w in words if w not in string.punctuation]
 
     def _remove_stopwords(self, words):
-        return [w for w in words if w not in self.stop_words]
+        return [w for w in words if w not in self.stop_words and len(w)>1]
 
     def _lemmatize(self, words):
         return ' '.join([self.lemmatizer.lemmatize(w) for w in words])
@@ -66,7 +76,7 @@ class TextSlack(BaseEstimator, TransformerMixin):
         return ' '.join([w for w, p in pos_tags if p == 'JJ'])
     
     def extract_adverbs(self, text):
-        processed_text = self._preprocess_text(text)
+        processed_text = self.preprocess_text(text)
         pos_tags, _ = self._blob_features(processed_text)
         return ' '.join([w for w, p in pos_tags if p == 'RB'])
     
