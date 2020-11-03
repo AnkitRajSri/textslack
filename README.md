@@ -15,7 +15,10 @@ Below are the key functionalities currently available in the all the versions:
 6. sentiment(text): returns a string as sentiment
 7. word_occurances(word, text): returns frequency of a word mentioned in the text
 
-v.0.1.2 update: transform method can now be used on an entire pandas dataframe column.
+v.0.1.4 updates: 
+1. transform method can now be used on a list and an entire pandas dataframe column.
+2. textslack can perform basic text cleaning for some non-english languages as well, just pass the language while creating the object as shown below.
+   slack = TextSlack(lang='spanish')
 
 Please refer the below medium article for a detailed explanation of textslack functionalities.
 https://medium.com/analytics-vidhya/text-processing-made-easy-with-textslack-4214ae6bc67a
