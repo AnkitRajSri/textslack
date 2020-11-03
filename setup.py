@@ -20,7 +20,7 @@ with open(os.path.join(HERE, "README.md")) as fid:
 # This call to setup() does all the work
 setup(
     name="textslack",
-    version="0.1.4",
+    version="0.1.5",
     description="Play with text data",
     long_description=README,
     long_description_content_type="text/markdown",

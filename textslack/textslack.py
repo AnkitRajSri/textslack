@@ -8,7 +8,7 @@ nltk.download('average_perceptron_tagger')
 nltk.download('punkt')
 nltk.download('wordnet')
 from nltk.tokenize import word_tokenize, regexp_tokenize
-from nltk.stem import WordNetLemmatizer
+from nltk.stem import WordNetLemmatizer, SnowballStemmer
 from nltk.corpus import stopwords
 from textblob import TextBlob
 import string
@@ -22,36 +22,42 @@ class TextSlack(BaseEstimator, TransformerMixin):
         try:
             self.variety = variety
             self.user_abbrevs = user_abbrevs
-            if lang in stopwords.fileids():
+            self.lang = lang
+            if self.lang in stopwords.fileids() and self.lang in SnowballStemmer.languages:
                 self.stop_words = stopwords.words(lang)
             else:
-                raise StopwordsNotFoundException('This language is currently not supported by textslack.', 'Keep checking for support in the future updates.')
+                raise LanguageNotFoundException('{} is currently not supported by textslack.'.format(self.lang), 'Keep checking for support in the future updates.')
             self.lemmatizer = WordNetLemmatizer()
+            self.stemmer = SnowballStemmer(lang, ignore_stopwords=True)
             
-        except StopwordsNotFoundException as se:
-            print(str(se))
-            print("Details: {}".format(se.details))
+        except LanguageNotFoundException as e:
+            print(str(e))
+            print('Details: {}'.format(e.details))
             
     def fit(self, X, y=None):
         return self
 
     def transform(self, X, *_):
         if isinstance(X, pd.Series):
-            X_copy = X.copy()
-            return X_copy.apply(self._preprocess_text)
+            return X.apply(self._preprocess_text)
         elif isinstance(X, list):
-            X_copy = X.copy()
-            return [self._preprocess_text(x) for x in X_copy]
+            return [self._preprocess_text(x) for x in X]
         else:
             return self._preprocess_text(X)
 
     def _preprocess_text(self, text):
-        normalised_text = self._normalise(text)
-        normalised_text = re.sub(' +', ' ', normalised_text)
-        words = regexp_tokenize(normalised_text.lower(), r'[A-Za-z]+')
-        removed_punct = self._remove_punct(words)
-        removed_stopwords = self._remove_stopwords(removed_punct)
-        return self._lemmatize(removed_stopwords)
+        if self.lang == 'english':
+            normalised_text = self._normalise(text)
+            normalised_text = re.sub(' +', ' ', normalised_text)
+            words = regexp_tokenize(normalised_text.lower(), r'[A-Za-z]+')
+            removed_punct = self._remove_punct(words)
+            removed_stopwords = self._remove_stopwords(removed_punct)
+            return self._lemmatize(removed_stopwords)
+        else:
+            words = word_tokenize(text.lower())
+            removed_punct = self._remove_punct(words)
+            removed_stopwords = self._remove_stopwords(removed_punct)
+            return ' '.join([w for w in removed_stopwords])
 
     def _normalise(self, text):
         try:
@@ -66,32 +72,70 @@ class TextSlack(BaseEstimator, TransformerMixin):
         return [w for w in words if w not in self.stop_words and len(w)>1]
 
     def _lemmatize(self, words):
-        return ' '.join([self.lemmatizer.lemmatize(w) for w in words])
+        return ' '.join([self.lemmatizer.lemmatize(w, pos='v') for w in words])
+    
+    def _stem(self, words):
+        return ' '.join([self.stemmer.stem(w) for w in words])
     
     def extract_nouns(self, text):
-        processed_text = self._preprocess_text(text)
-        pos_tags, _ = self._blob_features(processed_text)
-        return ' '.join([w for w, p in pos_tags if p == 'NN'])
+        try:
+            if self.lang == 'english':
+                processed_text = self._preprocess_text(text)
+                pos_tags, _ = self._blob_features(processed_text)
+                return ' '.join([w for w, p in pos_tags if p == 'NN'])
+            else:
+                raise LanguageNotFoundException('Sorry for the inconvenience, textslack is still learning {}.'.format(self.lang), 'Keep checking for support in the future updates.')
+        except LanguageNotFoundException as e:
+            print(str(e))
+            print('Details: {}'.format(e.details))
     
     def extract_verbs(self, text):
-        processed_text = self._preprocess_text(text)
-        pos_tags, _ = self._blob_features(processed_text)
-        return ' '.join([w for w, p in pos_tags if p == 'VB'])
+        try:
+            if self.lang == 'english':
+                processed_text = self._preprocess_text(text)
+                pos_tags, _ = self._blob_features(processed_text)
+                return ' '.join([w for w, p in pos_tags if p == 'VB'])
+            else:
+                raise LanguageNotFoundException('Sorry for the inconvenience, textslack is still learning {}.'.format(self.lang), 'Keep checking for support in the future updates.')
+        except LanguageNotFoundException as e:
+            print(str(e))
+            print('Details: {}'.format(e.details))
       
     def extract_adjectives(self, text):
-        processed_text = self._preprocess_text(text)
-        pos_tags, _ = self._blob_features(processed_text)
-        return ' '.join([w for w, p in pos_tags if p == 'JJ'])
+        try:
+            if self.lang == 'english':
+                processed_text = self._preprocess_text(text)
+                pos_tags, _ = self._blob_features(processed_text)
+                return ' '.join([w for w, p in pos_tags if p == 'JJ'])
+            else:
+                raise LanguageNotFoundException('Sorry for the inconvenience, textslack is still learning {}.'.format(self.lang), 'Keep checking for support in the future updates.')
+        except LanguageNotFoundException as e:
+            print(str(e))
+            print('Details: {}'.format(e.details))
     
     def extract_adverbs(self, text):
-        processed_text = self._preprocess_text(text)
-        pos_tags, _ = self._blob_features(processed_text)
-        return ' '.join([w for w, p in pos_tags if p == 'RB'])
+        try:
+            if self.lang == 'english':
+                processed_text = self._preprocess_text(text)
+                pos_tags, _ = self._blob_features(processed_text)
+                return ' '.join([w for w, p in pos_tags if p == 'RB'])
+            else:
+                raise LanguageNotFoundException('Sorry for the inconvenience, textslack is still learning {}.'.format(self.lang), 'Keep checking for support in the future updates.')
+        except LanguageNotFoundException as e:
+            print(str(e))
+            print('Details: {}'.format(e.details))
     
     def sentiment(self, text):
-        processed_text = self._preprocess_text(text)
-        _, polarity = self._blob_features(processed_text)
-        return 'pos' if polarity > 0.0 else 'neg' if polarity < 0.0 else 'neu'
+        try:
+            if self.lang == 'english':
+                processed_text = self._preprocess_text(text)
+                _, polarity = self._blob_features(processed_text)
+                return 'pos' if polarity > 0.0 else 'neg' if polarity < 0.0 else 'neu'
+            else:
+                raise LanguageNotFoundException('Sorry for the inconvenience, textslack is still learning {}.'.format(self.lang), 'Keep checking for support in the future updates.')
+        except LanguageNotFoundException as e:
+            print(str(e))
+            print('Details: {}'.format(e.details))
 
     def _blob_features(self, text):
         blob = TextBlob(text)
@@ -101,10 +145,9 @@ class TextSlack(BaseEstimator, TransformerMixin):
         word_count_dic = dict(Counter([w for w in word_tokenize(text)]))
         return [c for w, c in word_count_dic.items() if w==word][0]
     
-class StopwordsNotFoundException(Exception):
+class LanguageNotFoundException(Exception):
     def __init__(self, message, details=None):
         self.message = message
         self.details = details
-        
     def __str__(self):
         return str(self.message)
